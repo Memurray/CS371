@@ -3,7 +3,7 @@ Right now the code contains a variety of stubs handling different objectives jus
 
 Right now it will read 100 packets and save all of them by flow id.
 
-Using dictionary structure each flow idea has a value.
+Using dictionary structure each flow id has a value.
 
 that value right now is just a counter for number of times that flow has been observed.
 
