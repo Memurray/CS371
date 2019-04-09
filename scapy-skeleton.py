@@ -38,10 +38,15 @@ def updateTuple(old,new):
     counter = old[0]
     out1 = counter+1
     out2 = (old[1]*counter + new[0])/(counter+1.0)
-    out3 = (old[2]*counter + new[1])/(counter+1.0)
-    out4 = (old[3]*counter + new[2])/(counter+1.0)
-    out5 = (old[4]*counter + new[3])/(counter+1.0)
-    return (out1,out2,out3,out4,out5)   
+    if old[1] > new[0]:
+        out3 = old[2]
+        out4 = new[0]
+    else:
+        out3 = new[0]
+        out4 = old[3]
+    out5 = (old[4]*counter + new[1])/(counter+1.0)
+    out6 = (old[5]*counter + new[1])/(counter+1.0)
+    return (out1,out2,out3,out4,out5,out6)   
 
 #Looks through data, finding flow with highest occurance count  
 def getBestFlow():
@@ -65,17 +70,21 @@ def getBestFlowCount():
 #Flips input flow and returns information if it exists
 def getPairFlow(flow):
     n = (flow[2],flow[3],flow[0],flow[1],flow[4]) 
+    value = 1
     if n in data:
-        print("Pair Flow: ",n, " Count: ",data[n])
-    d = 0
-    print()
-    for key, value in data.items():
-        print(key, "\t Count:",data[key])
+        #print("Pair Flow: ",n, " Count: ",data[n])
+        value = data[n][0]
+    return value
 
-def printToFile(flow,features,label):
+    
+
+def printToFile(flow,features,flowratio,label):
     with open('eval.csv','a',newline='') as eval:        #open csv in append mode
         eval_writer = csv.writer(eval, delimiter=',')    #setup line writing
-        eval_writer.writerow([flow,features[1],features[2],features[3],features[4],label])  #write this data to csv
+        proto = 1
+        if flow[4] == "udp":
+            proto = 0
+        eval_writer.writerow([flow,proto,features[1],features[2],features[3],features[4],flowratio,label])  #write this data to csv
         
 
 def fields_extraction(x):         #each loop for sniff do this
@@ -89,17 +98,24 @@ def fields_extraction(x):         #each loop for sniff do this
             n = (x[IP].src, x[UDP].sport,x[IP].dst,x[UDP].dport,"udp")         #Generate flow id for UDP  
 
         if n in data:
-            data[n] = updateTuple(data[n],(x[IP].len,checkTime(x.time,n),x[IP].ttl,x[IP].frag))  #Update the feature averages
+            data[n] = updateTuple(data[n],(x[IP].len,checkTime(x.time,n),x[IP].ttl))  #Update the feature averages
         else:
-            data[n] = (1,x[IP].len,checkTime(x.time,n),x[IP].ttl,x[IP].frag)  #Set initial feature values           
+            data[n] = (1,x[IP].len,x[IP].len,x[IP].len,checkTime(x.time,n),x[IP].ttl)  #Set initial feature values           
 
                 
-for i in range(25):
+for i in range(5):
     c = 0
+    
     MAX_READS = 1000
     timeDict = dict()
     data = dict()   
     sniff(prn = fields_extraction,stop_filter = stopfilter)
-    best = getBestFlow()
-    #getPairFlow(best)
-    printToFile(best,data[best],4)
+    if (i+1) % 5 ==0:
+        print("Completed Read",i+1)
+    best = getBestFlow()    
+    if best[0][0:3]  == "10." or best[0][0:3]  == "192":
+        flowratio = data[best][0]/getPairFlow(best)
+    else:
+        flowratio = getPairFlow(best)/data[best][0]
+    printToFile(best,data[best],flowratio,1)
+print("Done")
