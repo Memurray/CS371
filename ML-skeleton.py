@@ -14,9 +14,9 @@ from sklearn import tree
 df = pd.read_csv("eval.csv", header=None)
 # You might not need this next line if you do not care about losing information about flow_id etc. All you actually need to
 # feed your machine learning model are features and output label.
-columns_list = ['flow_id','feature_1', 'feature_2', 'feature_3', 'feature_4', 'label']
+columns_list = ['flow_id','Protocol', 'Len Avg', 'Len Max', 'Len Min','Time between packets','Outbound/Inbound', 'label']
 df.columns = columns_list
-features = ['feature_1', 'feature_2', 'feature_3', 'feature_4']
+features = ['Protocol', 'Len Avg', 'Len Max', 'Len Min','Time between packets','Outbound/Inbound']
 
 X = df[features]
 y = df['label']
