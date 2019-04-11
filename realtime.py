@@ -4,7 +4,29 @@ import numpy as np
 import sys
 import socket 
 import os
-import csv    
+import csv   
+import warnings
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import f1_score
+from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
+from sklearn import tree
+
+warnings.filterwarnings('ignore')
+df = pd.read_csv("eval.csv", header=None)
+columns_list = ['flow_id','Protocol', 'Len Avg', 'Len Max', 'Len Min','Time between packets','Time to Live','Outbound/Inbound', 'Pair Len' ,'label']
+df.columns = columns_list
+features = ['Protocol', 'Len Avg', 'Len Max', 'Len Min','Time between packets','Time to Live','Outbound/Inbound','Pair Len']
+
+X = df[features]
+y = df['label']
+acc_scores = 0,
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
+clf = tree.DecisionTreeClassifier()
+clf.fit(X_train, y_train)
 
 #Basic global + 1 operation
 def increment():
@@ -78,17 +100,6 @@ def getPairFlow(flow):
         value = (data[n][0],data[n][1])
     return value
 
-    
-
-def printToFile(flow,features,flowratio,pair_len,label):
-    with open('eval.csv','a',newline='') as eval:        #open csv in append mode
-        eval_writer = csv.writer(eval, delimiter=',')    #setup line writing
-        proto = 1
-        if flow[4] == "udp":
-            proto = 0
-        eval_writer.writerow([flow,proto,features[1],features[2],features[3],features[4],features[5],flowratio,pair_len,label])  #write this data to csv
-        
-
 def fields_extraction(x):         #each loop for sniff do this
     global dict
     if IP in x:               #if IP is a valid request, do this
@@ -104,22 +115,27 @@ def fields_extraction(x):         #each loop for sniff do this
         else:
             data[n] = (1,x[IP].len,x[IP].len,x[IP].len,checkTime(x.time,n),x[IP].ttl)  #Set initial feature values           
 
-                
+textOutput = ["Web Browsing","Video Streaming","Video Conference","File Download"]
+
 for i in range(25):
     c = 0    
-    MAX_READS = 1000
+    MAX_READS = 50
     timeDict = dict()
     data = dict()   
     sniff(prn = fields_extraction,stop_filter = stopfilter)
-    print("Completed Read",i+1)   
     best = getBestFlow()
     pair_flow_metrics = getPairFlow(best)  
     if best[0][0:3]  == "10." or best[0][0:4]  == "192.":
         flowratio = data[best][0]/pair_flow_metrics[0]
     else:
         flowratio = pair_flow_metrics[0]/data[best][0]
-    printToFile(best,data[best],flowratio,pair_flow_metrics[1],3)
-print("Done")
+    
+    proto = 1
+    if best[4] == "udp":
+        proto = 0
+         
+    prediction = clf.predict([[proto,data[best][1],data[best][2],data[best][3],data[best][4],data[best][5],flowratio,pair_flow_metrics[1]]])
+    print(textOutput[int(prediction)-1])
 
 #   1.)     Web Browsing (Wikipedia)
 #   2.)     Video Streaming (Youtube)

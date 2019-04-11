@@ -1,3 +1,4 @@
+import warnings
 import pandas as pd 
 import numpy as np
 import csv 
@@ -10,52 +11,56 @@ from sklearn.svm import SVC
 from sklearn.svm import LinearSVC
 from sklearn import tree
 
+def printToFile(d0,d1,d2,d3,d4):
+    with open('MLoutput.csv','a',newline='') as eval:        #open csv in append mode
+        eval_writer = csv.writer(eval, delimiter=',')    #setup line writing
+        eval_writer.writerow([d0,d1,d2,d3[0],d3[1],d3[2],d3[3],d4])  #write this data to csv
 
+warnings.filterwarnings('ignore')
 df = pd.read_csv("eval.csv", header=None)
-# You might not need this next line if you do not care about losing information about flow_id etc. All you actually need to
-# feed your machine learning model are features and output label.
-columns_list = ['flow_id','Protocol', 'Len Avg', 'Len Max', 'Len Min','Time between packets','Outbound/Inbound', 'label']
+columns_list = ['flow_id','Protocol', 'Len Avg', 'Len Max', 'Len Min','Time between packets','Time to Live','Outbound/Inbound', 'Pair Len' ,'label']
 df.columns = columns_list
-features = ['Protocol', 'Len Avg', 'Len Max', 'Len Min','Time between packets','Outbound/Inbound']
+features = ['Protocol', 'Len Avg', 'Len Max', 'Len Min','Time between packets','Time to Live','Outbound/Inbound','Pair Len']
 
 X = df[features]
 y = df['label']
+printToFile("Test Type","Accuracy","Precision",["Label 1 Precision","Label 2 Precision","Label 3 Precision","Label 4 Precision"],"F1 Score")
+acc_scores = 0,
 
-acc_scores = 0
+def processCLF(clf,MLtype):
+    clf.fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    y_score = clf.score(X_test, y_test)
+    print('Accuracy: ', y_score)
+
+    precision = precision_score(y_pred, y_test, average='macro')
+    print('Precision score: {0:0.2f}'.format(precision))
+
+    per_class_precision = precision_score(y_pred, y_test, average=None)
+    print('Per-class precision score:', per_class_precision)
+
+    f1 = f1_score(y_test, y_pred, average='macro')
+    print('F1 score:',f1)
+    print()  
+    printToFile(MLtype,y_score,precision,per_class_precision, f1) 
+
+
 for i in range(0, 10):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
 
     #Decision Trees
     clf = tree.DecisionTreeClassifier()
-    clf.fit(X_train, y_train)
+    processCLF(clf,"DTC")
 
-    # Neural network (MultiPerceptron Classifier)
-    #clf = MLPClassifier()
-    #clf.fit(X_train, y_train)
+for i in range(0, 10):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
 
-    #SVM's
-    # clf = SVC(gamma='auto')     #SVC USE THIS
-    # clf = LinearSVC()  #Linear SVC
-    # clf.fit(X_train, y_train) 
+    clf = clf = MLPClassifier()
+    processCLF(clf,"MPC")
 
+for i in range(0, 10):
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.25)
 
-    #here you are supposed to calculate the evaluation measures indicated in the project proposal (accuracy, F-score etc)
-    y_pred = clf.predict(X_test)
-    y_score = clf.score(X_test, y_test)
-    print('Accuracy: ', y_score)
-
-    # Compute the average precision score
-    micro_precision = precision_score(y_pred, y_test, average='micro')
-    print('Micro-averaged precision score: {0:0.2f}'.format(
-          micro_precision))
-
-    macro_precision = precision_score(y_pred, y_test, average='macro')
-    print('Macro-averaged precision score: {0:0.2f}'.format(
-          macro_precision))
-
-    per_class_precision = precision_score(y_pred, y_test, average=None)
-    print('Per-class precision score:', per_class_precision)
-
-    print('F1 score:',f1_score(y_test, y_pred, average='macro'))
-    print()     
-          
+    clf = SVC(gamma='auto')     #SVC USE THIS
+    clf = LinearSVC()  #Linear SVC)
+    processCLF(clf,"SVC")   
